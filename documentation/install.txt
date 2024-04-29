@@ -1,0 +1,59 @@
+General
+    name: vmazing-hub-01
+    os: nixos-minimal-23.11.6510.a5e4bbcb4780-x86_64-linux.iso
+
+Recources
+    memory: 8192
+    cpus: 4
+
+Storage
+    boot: 20Gb
+
+Install:
+    g (gpt disk label)
+    n
+    1 (partition number [1/128])
+    2048 first sector
+    +500M last sector (boot sector size)
+    t
+    1 (EFI System)
+    n
+    2
+    default (fill up partition)
+    default (fill up partition)
+    w (write)
+
+    lsblk
+    sudo mkfs.fat -F 32 /dev/vda1
+    sudo fatlabel /dev/vda1 NIXBOOT
+    sudo mkfs.ext4 /dev/vda2 -L NIXROOT
+    sudo mount /dev/disk/by-label/NIXROOT /mnt
+    sudo mkdir -p /mnt/boot
+    sudo mount /dev/disk/by-label/NIXBOOT /mnt/boot
+
+    sudo nixos-generate-config --root /mnt
+    cd /mnt/etc/nixos/
+    sudo vim configuration.nix
+
+    users.users.user with adding entry initialPassword = "pw123";
+    boot.loader.grub.device = "/dev/sda"; #or "nodev" for efi only
+
+    cd /mnt
+    sudo nixos-install
+
+Password
+    user: vmazing
+    password: vmazing
+
+    user: root
+    password: 59Fd9KmsFA4A
+
+Fixes:
+
+    After install of vscode remote ssh
+        systemctl --user start auto-fix-vscode-server.service
+        systemctl --user enable auto-fix-vscode-server.service
+
+Vmazing:
+    cd /
+    git clone git@github.com:AsterPieters/vmazing.git
