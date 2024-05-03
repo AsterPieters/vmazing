@@ -97,6 +97,7 @@ def create_network(network_name):
     try:
         # Create and start the network
         network = conn.networkDefineXML(xml)
+        network.setAutostart(1)
         network.create()
         print(f"Network {network_name} created and started successfully.")
 
