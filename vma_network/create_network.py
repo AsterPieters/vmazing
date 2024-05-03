@@ -5,21 +5,44 @@
 import subprocess
 import argparse
 import libvirt
-import redis
 import sys
+
+# Set path
+sys.path.append('/opt/vmazing')
+
+# Custom modules
+from tools._redis import redis_conn
+
+def get_network():
+  """
+  Get the network CIDR from redis and increment it
+  """
+
+  # Connect to redis
+  r = redis_conn()
+
+  # Retrieve the network
+  key = 'network_third_octet'
+  old_value = r.get(key)
+  
+  # Increment by one
+  new_value = int(old_value) + 1
+  r.set(key, new_value)
+
+  # Check if the key exists and print the value
+  if new_value is not None:
+      return new_value
+  else:
+      return False
+
 
 def get_virtual_bridge_id():
   """
   Get the id from redis and increment it
   """
 
-  # Connect to Redis
-  redis_host = 'localhost'
-  redis_port = 6379
-  redis_password = None
-  redis_db = 0
-
-  r = redis.Redis(host=redis_host, port=redis_port, password=redis_password, db=redis_db)
+  # Connect to redis
+  r = redis_conn()
 
   # Retrieve the key
   key = 'network_bridge_id'
@@ -35,13 +58,13 @@ def get_virtual_bridge_id():
   else:
       return False
 
-def create_network(network_name, network_id):
+
+def create_network(network_name):
     """
     Create a network.
     
     Args:
         network_name (str): Name of the network.
-        subnet (str): Subnet in CIDR notation.
         
     Returns:
         str: The name if true, None if false.
@@ -49,8 +72,13 @@ def create_network(network_name, network_id):
     # Connect to KVM
     conn = libvirt.open('qemu:///system')
 
+    # Define bridge
     bridge_id = get_virtual_bridge_id()
     bridge_name = f"virbr{bridge_id}"
+
+    # Define network
+    network_third_octet = get_network()
+    network = f"192.168.{network_third_octet}"
 
     # Create network XML
     xml = f"""
@@ -58,9 +86,9 @@ def create_network(network_name, network_id):
       <name>{network_name}</name>
       <bridge name='{bridge_name}'/>
       <forward mode='nat'/>
-      <ip address='192.168.{network_id}.1' netmask='255.255.255.0'>
+      <ip address='{network}.1' netmask='255.255.255.0'>
         <dhcp>
-          <range start='192.168.{network_id}.2' end='192.168.{network_id}.254'/>
+          <range start='{network}.2' end='{network}.254'/>
         </dhcp>
       </ip>
     </network>
@@ -82,7 +110,6 @@ if __name__ == '__main__':
   # Take arguments
   parser = argparse.ArgumentParser(description="Create a network")
   parser.add_argument("network_name", help="Name of the network")
-  parser.add_argument("network_id", help="Network ID")
   args = parser.parse_args()
 
-  create_network(args.network_name, args.network_id)
+  create_network(args.network_name)

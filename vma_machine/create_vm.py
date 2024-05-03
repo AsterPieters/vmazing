@@ -7,9 +7,9 @@ import argparse
 import sys
 
 # Set path
-sys.path.append('/vmazing')
+sys.path.append('/opt/vmazing')
 
-# Modules
+# Custom modules
 from vma_storage.create_disk import create_disk
 
 def create_vm(vm_name, vm_memory, vm_vcpus, vm_storage, network):

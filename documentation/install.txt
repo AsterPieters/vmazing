@@ -57,3 +57,11 @@ Fixes:
 Vmazing:
     cd /
     git clone git@github.com:AsterPieters/vmazing.git
+
+Git:
+    git config --global user.email "asterpieters@gmail.com"
+    git config --global user.name "AsterPieters"
+
+Redis:
+    set network_bridge_id 0
+    set network_id 0
