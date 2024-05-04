@@ -17,3 +17,24 @@ def redis_conn():
   r = redis.Redis(host=redis_host, port=redis_port, password=redis_password, db=redis_db)
 
   return r
+
+def redis_increment(key):
+  """
+  Get a redis key and increment it
+  """
+
+  # Connect to redis
+  r = redis_conn()
+
+  # Retrieve the key
+  old_value = r.get(key)
+
+  # Increment by one
+  new_value = int(old_value) + 1
+  r.set(key, new_value)
+
+  # Check if the key exists and print the value
+  if new_value is not None:
+      return new_value
+  else:
+      return False

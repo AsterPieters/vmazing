@@ -11,53 +11,7 @@ import sys
 sys.path.append('/opt/vmazing')
 
 # Custom modules
-from tools._redis import redis_conn
-
-def get_network():
-  """
-  Get the network CIDR from redis and increment it
-  """
-
-  # Connect to redis
-  r = redis_conn()
-
-  # Retrieve the network
-  key = 'network_third_octet'
-  old_value = r.get(key)
-  
-  # Increment by one
-  new_value = int(old_value) + 1
-  r.set(key, new_value)
-
-  # Check if the key exists and print the value
-  if new_value is not None:
-      return new_value
-  else:
-      return False
-
-
-def get_virtual_bridge_id():
-  """
-  Get the id from redis and increment it
-  """
-
-  # Connect to redis
-  r = redis_conn()
-
-  # Retrieve the key
-  key = 'network_bridge_id'
-  old_value = r.get(key)
-
-  # Increment by one
-  new_value = int(old_value) + 1
-  r.set(key, new_value)
-
-  # Check if the key exists and print the value
-  if new_value is not None:
-      return new_value
-  else:
-      return False
-
+from tools._redis import redis_conn, redis_increment
 
 def create_network(network_name):
     """
@@ -73,13 +27,16 @@ def create_network(network_name):
     conn = libvirt.open('qemu:///system')
 
     # Define bridge
-    bridge_id = get_virtual_bridge_id()
-    bridge_name = f"virbr{bridge_id}"
+    network_bridge_id = redis_increment("network_bridge_id")
+    bridge_name = f"virbr{network_bridge_id}"
 
     # Define network
-    network_third_octet = get_network()
+    network_third_octet = redis_increment("network_third_octet")
     network = f"192.168.{network_third_octet}"
 
+    # Define id
+    network_id = redis_increment("network_id")
+    network_name = f"network-{network_id}"
     # Create network XML
     xml = f"""
     <network>
