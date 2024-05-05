@@ -65,3 +65,13 @@ Git:
 Redis:
     set network_bridge_id 0
     set network_id 0
+
+Vnc:
+    ssh -L 5901:127.0.0.1:5900 root@vmazing-hub-0
+
+Kubernetes:
+    https://nixos.wiki/wiki/Kubernetes
+
+kube-join:
+    copy /var/lib/kubernetes/secrets/ca.pem to the node
+    
