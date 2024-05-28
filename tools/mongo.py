@@ -1,113 +1,77 @@
 import pymongo
 import datetime
+import logging
 from pymongo import MongoClient
 from pymongo.read_preferences import ReadPreference
 
-# Access mongo and connect to the database
-def conn_mongo(database_name):
-    mongo_hosts = "mongo-service"
-    mongodb_url = f"mongodb://{mongo_hosts}/"
+# logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO)
 
-    try:
-        client = pymongo.MongoClient(mongodb_url, replicaSet="rs0")
-        db = client[database_name]
-        return db, client
-    except Exception as e:
-        print(f"An error occurred: {e}")
+class MongoDBConnection:
+    def __init__(self, database, collection):
+        self.mongo_hosts = "mongo-service:27017"
+        self.database = database
 
-    except pymongo.errors.ConnectionFailure as e:
-        # Handle connection failure errors
-        print(f"Error connecting to MongoDB: {e}")
-        return None, None
+        # Connect and get the collection
+        self.connect()
+        self.collection = self.db[collection]
 
-    except Exception as e:
-        # Handle other exceptions
-        print(f"An error occurred: {e}")
-        return None, None
+    def connect(self):
+        mongodb_url = f"mongodb://{self.mongo_hosts}/"
+        try:
+            self.client = pymongo.MongoClient(mongodb_url)
 
+            self.db = self.client[self.database]
+            return self.db, self.client
+        
+        except pymongo.errors.ConnectionFailure as e:
+            logger.error(f"Error connecting to MongoDB: {e}")
+            return None, None
+        
+        except Exception as e:
+            logger.error(f"Error occurred: {e}")
+            return None, None
 
-def generate_timestamp():
-    # Get the time
-    current_datetime = datetime.datetime.now()
+    def fetch_documents(self, data=None):
+        if data: # Fetch one document
+            documents = self.collection.find_one(data)
+        else: # Fetch all documents
+            documents = self.collection.find()
 
-    # Format it in time and date
-    time = current_datetime.strftime("%H:%M:%S")
-    date = current_datetime.strftime("%d/%m/%y")
+        return documents
 
-    return f"{time} {date}"
+    def create_document(self, data):
+        document = {
+            **data,
+            "created": self.generate_timestamp()
+        }
 
+        self.collection.insert_one(document)
 
-def initialize_database(database):
-    db, client = conn_mongo(database)
+    def update_document(self, id_key_value, data):
+        self.collection.update_one(
+            id_key_value,
+            {"$set": data}
+        )
 
-    database_names = client.list_database_names()
-    print(database_name)
+    def delete_document(self, data):
+        result = self.collection.delete_one(data)
+        return result
 
-    client.close()
+    def generate_timestamp(self):
+        # Get the time and date
+        current_datetime = datetime.datetime.now()
+        time = current_datetime.strftime("%H:%M:%S")
+        date = current_datetime.strftime("%d/%m/%y")
 
-# Insert data into a collection of the database
-def mongo_insert(database, collection, data):
+        return f"{time} {date}"
 
-    db, client = conn_mongo(database)
+    def close(self):
+        if self.client:
+            self.client.close()
 
-    collection = db[collection]
-
-    document = {
-
-        **data,
-        "created": generate_timestamp()
-
-    }
-
-    result = collection.insert_one(document)
-    client.close()
-
-    # Check the result
-    print("Inserted document ID:", result.inserted_id)
-
-def mongo_delete(database, collection, name):
-    
-    db, client = conn_mongo(database)
-
-    collection = db[collection]
-
-    result = collection.delete_one({ 'name': name })
-    client.close()
-
-    # Check the result
-    print("Deleted document ID:", result)
-
-def document_edit(database, collection, identifier, identifier_value, identifier_of_value_to_be_changed, value):
-
-    db, client = conn_mongo(database)
-
-    collection = db[collection]
-
-    # Update the document
-    collection.update_one(
-        {identifier: identifier_value},
-        {"$set": {identifier_of_value_to_be_changed: value}}
-    )
-
-    client.close()
-
-def list_collections(database, collection):
-    
-    db, client = conn_mongo(database)
-
-    collection = db[collection]
-
-    documents = collection.find()
-
-    # Step 5: Print out the documents
-    for document in documents:
-        print(document)
-
-def find_one(database, collection, data):
-    
-    db, client = conn_mongo(database)
-    collection = db[collection]
-    documents = collection.find_one(data)
-
-    client.close()
-    return documents
+class IgnoreServerSelectionLogs(logging.Filter): # Cant get this error fixed, so we just ignore it
+    def filter(self, record):
+        if record.name == "pymongo.serverSelection":
+            return False
+        return True
