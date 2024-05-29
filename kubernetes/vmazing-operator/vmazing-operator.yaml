@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmazing-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vmazing-operator
+  template:
+    metadata:
+      labels:
+        app: vmazing-operator
+    spec:
+      nodeSelector:
+        vma-controller: "true"
+      containers:
+      - name: vmazing-operator
+        image: beetlevenom/vmazing:latest
+        command: ["/bin/bash", "-c", "--"]
+        args: ["while true; do sleep 30; done;"]
+        volumeMounts:
+        - name: vmazing
+          mountPath: /opt/vmazing
+        - name: libvirt
+          mountPath: /var/run/libvirt/
+      volumes:
+      - name: vmazing
+        hostPath:
+          path: /opt/vmazing
+          type: Directory
+      - name: libvirt
+        hostPath: 
+          path: /var/run/libvirt/
+          type: Directory

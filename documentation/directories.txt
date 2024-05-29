@@ -1,2 +1,2 @@
-/vma-diskstore
+/vma-diskstore-01
 /root/.kube

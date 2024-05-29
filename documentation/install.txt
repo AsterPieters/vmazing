@@ -74,4 +74,37 @@ Kubernetes:
 
 kube-join:
     copy /var/lib/kubernetes/secrets/ca.pem to the node
+
+mongo replicaset:
+
+    use admin
+    rs.initiate()
+    var cfg = rs.conf()
+    cfg.members[0].host="10.10.0.11:32017"
+    rs.reconfig(cfg)
+    rs.add("10.10.0.12:32017")
+    rs.add("10.10.0.13:32017")
+
+    Reset replicaset:
+    rs.reconfig({
+      _id: "rs0",
+      members: [
+        { _id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local", priority: 2 },
+        { _id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local", priority: 1 },
+        { _id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local", priority: 0.5 }
+      ]
+    }, { force: true });
+
+
+
+Mongo create and login with user:
+
+    use networks
+    db.createCollection("keys")
+    db.createCollection("virtual_networks")
+
+
+    db.createUser({user: "vmazing", pwd: "vmazing", roles: ["readWrite"]})
+    mongosh -u vmazing --authenticationDatabase networks
+
     

@@ -4,8 +4,12 @@ import logging
 from pymongo import MongoClient
 from pymongo.read_preferences import ReadPreference
 
-# logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+# Ignore the serverSelection errors
+pymongologger = logging.getLogger("pymongo.serverSelection")
+pymongologger.setLevel(logging.CRITICAL)
 
 class MongoDBConnection:
     def __init__(self, database, collection):
@@ -46,13 +50,15 @@ class MongoDBConnection:
             "created": self.generate_timestamp()
         }
 
-        self.collection.insert_one(document)
+        result = self.collection.insert_one(document)
+        return result
 
     def update_document(self, id_key_value, data):
-        self.collection.update_one(
+        result = self.collection.update_one(
             id_key_value,
             {"$set": data}
         )
+        return result
 
     def delete_document(self, data):
         result = self.collection.delete_one(data)
