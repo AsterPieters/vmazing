@@ -20,22 +20,27 @@ class MongoDBConnection:
         self.connect()
         self.collection = self.db[collection]
 
+    # Decorator to do all error handling for the mongo functions
+    def error_handling(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except pymongo.errors.ConnectionFailure as e:
+                logger.error(f"Error connecting to MongoDB: {e}", exc_info=True)
+                raise
+            except Exception as e:
+                logger.error(f"Error occurred in monogoDB: {e}", exc_info=True)
+                raise
+        return wrapper
+
+    @error_handling
     def connect(self):
         mongodb_url = f"mongodb://{self.mongo_hosts}/"
-        try:
-            self.client = pymongo.MongoClient(mongodb_url)
-
-            self.db = self.client[self.database]
-            return self.db, self.client
-        
-        except pymongo.errors.ConnectionFailure as e:
-            logger.error(f"Error connecting to MongoDB: {e}")
-            return None, None
-        
-        except Exception as e:
-            logger.error(f"Error occurred: {e}")
-            return None, None
-
+        self.client = pymongo.MongoClient(mongodb_url)
+        self.db = self.client[self.database]
+        return self.db, self.client
+    
+    @error_handling
     def fetch_documents(self, data=None):
         if data: # Fetch one document
             documents = self.collection.find_one(data)
@@ -44,6 +49,7 @@ class MongoDBConnection:
 
         return documents
 
+    @error_handling
     def create_document(self, data):
         document = {
             **data,
@@ -53,6 +59,7 @@ class MongoDBConnection:
         result = self.collection.insert_one(document)
         return result
 
+    @error_handling
     def update_document(self, id_key_value, data):
         result = self.collection.update_one(
             id_key_value,
@@ -60,10 +67,12 @@ class MongoDBConnection:
         )
         return result
 
+    @error_handling
     def delete_document(self, data):
         result = self.collection.delete_one(data)
         return result
 
+    @error_handling
     def generate_timestamp(self):
         # Get the time and date
         current_datetime = datetime.datetime.now()
@@ -72,6 +81,17 @@ class MongoDBConnection:
 
         return f"{time} {date}"
 
+    @error_handling
+    def increment_key(self, data):
+        # Get the network_id sequence
+        result = self.fetch_documents({'name': data})
+
+        # Increment and update the value
+        incremented_key = result['value'] + 1
+        result = self.update_document({'name': data}, {'value': incremented_key})
+        return incremented_key
+
+    @error_handling
     def close(self):
         if self.client:
             self.client.close()
